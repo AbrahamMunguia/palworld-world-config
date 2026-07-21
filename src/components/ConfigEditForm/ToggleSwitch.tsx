@@ -1,7 +1,7 @@
 import { useId } from "react"
 
-import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { FieldLabel } from "./FieldLabel"
 
 export interface IToggleSwitchProps {
   /** Field label shown next to the control (the INI key name). */
@@ -21,9 +21,7 @@ export function ToggleSwitch({ label, checked, onChange }: IToggleSwitchProps) {
 
   return (
     <div className="flex items-center justify-between gap-3">
-      <Label htmlFor={inputId} className="min-w-0 flex-1 truncate" title={label}>
-        {label}
-      </Label>
+      <FieldLabel label={label} htmlFor={inputId} />
       <Switch id={inputId} checked={checked} onCheckedChange={onChange} />
     </div>
   )

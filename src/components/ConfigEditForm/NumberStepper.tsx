@@ -2,7 +2,7 @@ import { useId } from "react"
 import type { ChangeEvent } from "react"
 
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { FieldLabel } from "./FieldLabel"
 
 export interface INumberStepperProps {
   /** Field label shown next to the control (the INI key name). */
@@ -31,9 +31,7 @@ export function NumberStepper({ label, value, onChange }: INumberStepperProps) {
 
   return (
     <div className="flex items-center justify-between gap-3">
-      <Label htmlFor={inputId} className="min-w-0 flex-1 truncate" title={label}>
-        {label}
-      </Label>
+      <FieldLabel label={label} htmlFor={inputId} />
       <Input
         id={inputId}
         type="number"
