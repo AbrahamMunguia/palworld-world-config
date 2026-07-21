@@ -1,6 +1,7 @@
-import { useId, useState } from "react"
+import { useId, useRef, useState } from "react"
 import type { ChangeEvent } from "react"
 
+import { Button } from "@/components/ui/button"
 import type { IIniParseResult } from "@/lib/ini/ini.types"
 import { parseIni } from "@/lib/ini/parseIni"
 
@@ -29,9 +30,16 @@ function readFileAsText(file: File): Promise<string> {
  * File/FileReader API, parses it with `parseIni`, and reports the result
  * to the caller via `onImport`. Purely an input + parse trigger — it does
  * not own where the parsed data is stored or render any editing UI.
+ *
+ * The native `<input type="file">` is required for file selection but is
+ * visually hidden; a themed, high-contrast `Button` is the visible trigger
+ * and forwards clicks to the input via `inputRef`, so keyboard/AT users get
+ * standard button semantics (Enter/Space activation, focus-visible ring)
+ * while sighted users get a clear, adequately-sized click target.
  */
 export function FileImport({ onImport, label = "Import PalWorldSettings.ini" }: IFileImportProps) {
   const inputId = useId()
+  const inputRef = useRef<HTMLInputElement>(null)
   const [readError, setReadError] = useState<string | null>(null)
   const [parseErrors, setParseErrors] = useState<string[]>([])
 
@@ -66,10 +74,20 @@ export function FileImport({ onImport, label = "Import PalWorldSettings.ini" }: 
 
   return (
     <div className="flex flex-col gap-2">
-      <label htmlFor={inputId} className="text-sm font-medium">
+      <label htmlFor={inputId} className="sr-only">
         {label}
       </label>
-      <input id={inputId} type="file" accept=".ini" onChange={handleChange} className="text-sm" />
+      <input
+        id={inputId}
+        ref={inputRef}
+        type="file"
+        accept=".ini"
+        onChange={handleChange}
+        className="sr-only"
+      />
+      <Button type="button" size="lg" onClick={() => inputRef.current?.click()} className="self-start">
+        {label}
+      </Button>
       {alertMessage !== null && (
         <p role="alert" className="text-sm text-destructive">
           {alertMessage}
