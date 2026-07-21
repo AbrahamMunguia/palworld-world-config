@@ -4,6 +4,13 @@ const SECTION_HEADER_PATTERN = /^\[(.+)\]$/
 const NUMBER_PATTERN = /^-?\d+(\.\d+)?$/
 
 /**
+ * Keys that would otherwise let a crafted .ini file reach up into
+ * `Object.prototype` (or a struct object's own prototype) via bracket
+ * assignment. Rejected everywhere a key comes from untrusted file content.
+ */
+const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"])
+
+/**
  * Splits a comma-separated list at the top nesting level only, ignoring
  * commas that appear inside double-quoted strings or nested parentheses.
  * Used to break a Palworld struct body (`a=1,b=2,c=(x=1)`) into its
@@ -68,6 +75,7 @@ function parseStructBody(body: string): TIniValue {
   for (const member of members) {
     const separatorIndex = member.indexOf("=")
     const key = member.slice(0, separatorIndex).trim()
+    if (UNSAFE_KEYS.has(key)) continue
     const valueRaw = member.slice(separatorIndex + 1)
     struct[key] = parseValue(valueRaw)
   }
@@ -108,7 +116,7 @@ function parseValue(raw: string): TIniValue {
  * array rather than overwriting.
  */
 function assignEntry(section: IIniSection, key: string, value: TIniValue): void {
-  if (!(key in section)) {
+  if (!Object.prototype.hasOwnProperty.call(section, key)) {
     section[key] = value
     return
   }
@@ -150,8 +158,13 @@ export function parseIni(contents: string): IIniParseResult {
         errors.push(`Line ${lineNumber}: empty section name: "${rawLine}"`)
         return
       }
+      if (UNSAFE_KEYS.has(sectionName)) {
+        errors.push(`Line ${lineNumber}: unsafe section name: "${rawLine}"`)
+        currentSectionName = null
+        return
+      }
       currentSectionName = sectionName
-      if (!(sectionName in document)) {
+      if (!Object.prototype.hasOwnProperty.call(document, sectionName)) {
         document[sectionName] = {}
       }
       return
@@ -171,6 +184,11 @@ export function parseIni(contents: string): IIniParseResult {
 
     if (currentSectionName === null) {
       errors.push(`Line ${lineNumber}: key "${key}" found outside of any section: "${rawLine}"`)
+      return
+    }
+
+    if (UNSAFE_KEYS.has(key)) {
+      errors.push(`Line ${lineNumber}: unsafe key: "${rawLine}"`)
       return
     }
 

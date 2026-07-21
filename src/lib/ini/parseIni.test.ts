@@ -97,4 +97,29 @@ describe("parseIni", () => {
     expect(document).toEqual({})
     expect(errors).toEqual([])
   })
+
+  it("rejects a [__proto__] section instead of polluting Object.prototype", () => {
+    const { document, errors } = parseIni("[__proto__]\nisAdmin=True\n")
+
+    expect(errors).toHaveLength(2)
+    expect(errors[0]).toMatch(/unsafe section name/)
+    expect(errors[1]).toMatch(/outside of any section/)
+    expect(document).toEqual({})
+    expect(({} as Record<string, unknown>).isAdmin).toBeUndefined()
+  })
+
+  it("rejects __proto__/constructor/prototype keys inside a section", () => {
+    const { document, errors } = parseIni("[Section]\n__proto__=1\nconstructor=2\nprototype=3\nSafe=ok\n")
+
+    expect(errors).toHaveLength(3)
+    expect(document).toEqual({ Section: { Safe: "ok" } })
+    expect(({} as Record<string, unknown>).__proto__).toBe(Object.prototype)
+  })
+
+  it("rejects __proto__/constructor/prototype keys inside a struct body", () => {
+    const { document, errors } = parseIni('[Section]\nFoo=(__proto__=1,constructor=2,prototype=3,Safe="ok")\n')
+
+    expect(errors).toEqual([])
+    expect(document.Section.Foo).toEqual({ Safe: "ok" })
+  })
 })
